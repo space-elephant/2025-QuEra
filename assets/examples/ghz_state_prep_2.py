@@ -27,8 +27,6 @@ def GHZ_state_prep():
     move.Execute(state)
 
 
-expected_qasm = 
-
 analysis = MoveScorer(GHZ_state_prep)
 print(analysis.score())
 # ani = analysis.animate()

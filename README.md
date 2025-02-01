@@ -66,7 +66,7 @@ Project submission forms will automatically close on Sunday at 10am EST and won'
 ## Evaluation Criteria
 
 The performance of the different teams on this challenge will be evaluated through a few different criteria. In order of priority and value, these are:
-- the validity of solutions with respect to hardware constraints.
+- the validity of solutions with respect to hardware constraints and with respect to the expected circuit for the solution.
 - values obtained by the scorer data which analyze how optimal a solution to the challenge is.
 - how optimal solutions are with respect to parameters and concepts not incorporated in the cost function.
 - the suite of tools and pipelines developed by participants to aid and/or automatize solutions.

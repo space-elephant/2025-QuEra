@@ -351,7 +351,7 @@ class MoveScorer:
     TOUCH_COST = 0.8
     TIME_COST = 0.6
 
-    def run_move_analysis(self, *args, **kwargs) -> MoveAnalysisResult:
+    def _run_move_analysis(self, *args, **kwargs) -> MoveAnalysisResult:
         return MoveAnalysis(dialects=vmove).score(self.mt)
 
     def generate_qasm(self) -> str:
@@ -359,16 +359,15 @@ class MoveScorer:
 
         return MoveToQASM2().emit_str(self.mt)
 
-
-    def validate_output(self, move_analysis_result: MoveAnalysisResult) -> bool:
+    def validate(self) -> bool:
         qasm = self.generate_qasm()
-        
+
         if not verify_circuits(qasm, self.expected_qasm):
             print(f"output:\n\n{qasm}")
             print(f"expected:\n{self.expected_qasm}")
             raise ValueError("Output does not match expected QASM")
 
-    def score_moves(self, result: MoveAnalysisResult):
+    def _score_moves(self, result: MoveAnalysisResult):
         """
         Compute the move cost of a method.
         The cost is a vector with values:
@@ -424,7 +423,7 @@ class MoveScorer:
         }
         return payload
 
-    def analyze_gate(
+    def _analyze_gate(
         self, result: Dict[ir.SSAValue, lat.AtomStateLattice], statement
     ) -> int:
         assert isinstance(
@@ -439,7 +438,11 @@ class MoveScorer:
 
         match statement:
             case core.GlobalCZ():
-                return len(atom_state.gate)
+                return sum(
+                    1
+                    for i in atom_state.gate.keys()
+                    if i % 2 == 0 and i + 1 in atom_state.gate
+                )
             case core.GlobalRz() | core.GlobalXY():
                 return len(atom_state.gate) + len(atom_state.storage)
             case core.LocalRz(indices=indices_ssa) | core.LocalXY(indices=indices_ssa):
@@ -451,7 +454,7 @@ class MoveScorer:
             case _:
                 raise ValueError(f"Unsupported gate statement {statement}")
 
-    def score_gates(
+    def _score_gates(
         self,
         move_analysis_result: MoveAnalysisResult,
     ) -> Counter[str]:
@@ -467,7 +470,7 @@ class MoveScorer:
         for stmt in move_analysis_result.mt.code.walk():
             if not isinstance(stmt, valid_stmts):
                 continue
-            count_dict[stmt.name] = count_dict.get(stmt.name, 0) + self.analyze_gate(
+            count_dict[stmt.name] = count_dict.get(stmt.name, 0) + self._analyze_gate(
                 result_dict, stmt
             )
 
@@ -478,15 +481,15 @@ class MoveScorer:
         fig, ax = plt.subplots()
         fig.tight_layout()
         renderer = Renderer()
-        move_analysis_result = self.run_move_analysis()
+        move_analysis_result = self._run_move_analysis()
         return renderer.animate(move_analysis_result, fig, ax)
 
     def score(self):
         """Return a dictionary of scores for the method"""
-        move_analysis_result = self.run_move_analysis()
-        self.validate_output(move_analysis_result)
-        move_score = self.score_moves(move_analysis_result)
-        gate_store = self.score_gates(move_analysis_result=move_analysis_result)
+        self.validate()
+        move_analysis_result = self._run_move_analysis()
+        move_score = self._score_moves(move_analysis_result)
+        gate_store = self._score_gates(move_analysis_result=move_analysis_result)
 
         overall_score = (
             (move_score["time"] / 3.0) * self.TIME_COST

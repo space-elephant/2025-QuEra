@@ -29,5 +29,5 @@ def GHZ_state_prep():
 
 analysis = MoveScorer(GHZ_state_prep, expected_qasm="")
 ani = analysis.animate()
-ani.save("lot_depth_GHZ.mp4")
+ani.save("log_depth_GHZ.mp4")
 plt.show()
